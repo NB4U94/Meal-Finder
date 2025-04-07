@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en-AU">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Meal Finder helps you discover recipes based on ingredients you have. Search by ingredient, find random meal ideas, and save your favourites.">
+    <title>Meal Finder - Recipe Ideas by Ingredient</title>
+    <link rel="stylesheet" href="styles.css">
+    </head>
+<body>
+
+    <div class="app-container">
+
+        <section id="home-page" class="page active">
+            <header class="page-header">
+                <div id="app-logo" class="logo logo-large">
+                    <span class="logo-center">M</span>
+                </div>
+                <h1>MEAL FINDER</h1>
+                <p class="slogan">Your pantry's potential, unlocked.</p>
+                <p class="description">
+                    What's cooking? Click 'Find by Ingredient' to search our recipe database, or hit 'Random Meal' for instant inspiration! Save your top picks to your Favourites.
+                </p>
+            </header>
+            <main class="page-content centered-content">
+                <div class="home-button-container">
+                    <button id="home-search-button" class="button search-button">Find by Ingredient</button>
+                    <button id="random-meal-button" class="button random-button">Random Meal</button>
+                    <button id="view-favourites-home-button" class="button favourites-nav-button">View Favourites</button>
+                </div>
+                 <div id="random-meal-display" class="meal-card-display"></div>
+                 <div class="background-elements"></div>
+            </main>
+            <footer class="footer-banner">
+                 <p>Created and designed by NB4U productions.</p>
+            </footer>
+        </section>
+
+        <section id="search-page" class="page">
+             <div class="search-background-visuals"></div>
+             <main class="page-content centered-content">
+                <h2>Find Recipes by Ingredients</h2>
+                 <input type="text" id="search-page-input" class="search-input large-search-input" placeholder="e.g., chicken capsicum onion" aria-label="Enter ingredients to search for">
+                 <div id="suggested-ingredients-animation" class="suggested-ingredients-animation"><span>chicken...</span></div>
+
+                 <fieldset id="search-options-container">
+                    <legend class="visually-hidden">Search Options</legend> <div class="search-option-group">
+                       <span class="option-label">Match:</span>
+                        <div class="radio-group">
+                            <label>
+                                <input type="radio" name="match-type" value="all" checked> All Ingredients
+                            </label>
+                            <label>
+                                <input type="radio" name="match-type" value="any"> Any Ingredient
+                            </label>
+                        </div>
+                    </div>
+                    <div class="search-option-group">
+                        <label for="exclude-input" class="option-label">Exclude Ingredients:</label>
+                         <input type="text" id="exclude-input" class="search-input exclude-input" placeholder="e.g., nuts, mushrooms (optional)" aria-label="Enter ingredients to exclude">
+                    </div>
+                 </fieldset>
+
+                <button id="search-page-button" class="button search-button large-search-button">Search Recipes</button>
+                <button id="view-favourites-search-button" class="button favourites-nav-button">View Favourites</button>
+            </main>
+             </section>
+
+        <section id="results-page" class="page">
+            <header class="page-header">
+                <h2 id="results-page-title">Your Meal Options</h2>
+                 <div id="filter-container">
+                    <label for="filter-select">Filter by Tag:</label>
+                    <select id="filter-select" aria-label="Filter results by tag">
+                        <option value="all">Show All</option>
+                        </select>
+                 </div>
+            </header>
+            <main class="page-content">
+                <div id="results-container" class="results-grid">
+                    </div>
+                <div id="external-search-container" class="external-links-card" style="display: none;">
+                     <p>No more matches in our catalogue, or want to broaden your search?</p>
+                     <p>Let's check these sites with your ingredients:</p>
+                    <div id="external-links">
+                        </div>
+                  </div>
+            </main>
+             </section>
+
+        <section id="favourites-page" class="page">
+             <header class="page-header">
+                <h2>Your Favourite Meals</h2>
+             </header>
+             <main class="page-content">
+                <div id="favourites-container" class="results-grid">
+                    <p id="no-favourites-message" style="display: none;">You haven't saved any favourites yet!</p>
+                 </div>
+            </main>
+             </section>
+
+         <button id="back-button" class="button back-button" style="display: none;" aria-label="Go back to previous page">&larr; Back</button>
+
+        <div id="meal-overlay" class="overlay" role="dialog" aria-modal="true" aria-labelledby="overlay-title" style="visibility: hidden;"> <div class="overlay-content">
+                <button id="overlay-close-button" class="button close-button" aria-label="Close meal details">&times;</button>
+                <h3 id="overlay-title">Meal Title</h3>
+                <h4>Ingredients:</h4>
+                 <ul id="overlay-ingredients"></ul>
+                 <h4>Instructions:</h4>
+                <p id="overlay-instructions"></p>
+            </div>
+        </div>
+
+        <div id="no-results-popup" class="popup" role="alertdialog" aria-modal="true" aria-labelledby="no-results-title" style="visibility: hidden;"> <div class="popup-content">
+                 <button id="popup-close-button" class="button close-button" aria-label="Close no results message">&times;</button>
+                 <h4 id="no-results-title">No Matches Found</h4>
+                <p>Sorry, our database doesn't have a match for those ingredients right now.</p>
+                <p>Try searching externally:</p>
+                <div id="popup-external-links">
+                    </div>
+              </div>
+        </div>
+
+        <div id="loading-indicator" class="loading-indicator" style="display: none;" role="status" aria-live="polite"> <span class="visually-hidden">Loading...</span> <div class="dot"></div>
+            <div class="dot"></div>
+            <div class="dot"></div>
+        </div>
+
+    </div> <script> window.mealDatabase = []; </script>
+
+    <script src="meals_data/meals_asian_inspired.js" defer></script>
+    <script src="meals_data/meals_aussie_favourite.js" defer></script>
+    <script src="meals_data/meals_beef.js" defer></script>
+    <script src="meals_data/meals_british.js" defer></script>
+    <script src="meals_data/meals_cheese.js" defer></script>
+    <script src="meals_data/meals_chicken.js" defer></script>
+    <script src="meals_data/meals_chinese.js" defer></script>
+    <script src="meals_data/meals_chips.js" defer></script>
+    <script src="meals_data/meals_deep_fried.js" defer></script>
+    <script src="meals_data/meals_family_favourite.js" defer></script>
+    <script src="meals_data/meals_fish.js" defer></script>
+    <script src="meals_data/meals_italian.js" defer></script>
+    <script src="meals_data/meals_pasta.js" defer></script>
+    <script src="meals_data/meals_pub_classic.js" defer></script>
+    <script src="meals_data/meals_quick_meal.js" defer></script>
+    <script src="meals_data/meals_schnitzel.js" defer></script>
+    <script src="meals_data/meals_seafood.js" defer></script>
+    <script src="meals_data/meals_stir_fry.js" defer></script>
+    <script src="meals_data/meals_takeaway_classic.js" defer></script>
+    <script src="meals_data/meals_winter_warmer.js" defer></script>
+
+    <script src="script.js" defer></script> <style>
+      .visually-hidden {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
+      }
+    </style>
+
+</body>
+</html>
