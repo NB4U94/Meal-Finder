@@ -1,0 +1,25 @@
+{
+  "name": "Meal Finder - Recipe Ideas by Ingredient",                   // From <title> in index.txt 
+  "short_name": "MealFinder",                                          // Shorter name for icons
+  "description": "Meal Finder helps you discover recipes based on ingredients you have. Search by ingredient, find random meal ideas, and save your favourites.", // From <meta description> 
+  "start_url": "/index.html",                                          // Your main page 
+  "display": "standalone",                                             // Makes it look like a standalone app
+  "background_color": "#ffffff",                                       // White background for splash screen
+  "theme_color": "#333333",                                            // A dark theme color (you can adjust this)
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/images/icon-192x192.png",                               // IMPORTANT: You MUST create this icon file
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/images/icon-512x512.png",                               // IMPORTANT: You MUST create this icon file
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+    // Add more icon sizes if needed (e.g., 144x144)
+  ]
+}

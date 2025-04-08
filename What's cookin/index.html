@@ -6,7 +6,8 @@
     <meta name="description" content="Meal Finder helps you discover recipes based on ingredients you have. Search by ingredient, find random meal ideas, and save your favourites.">
     <title>Meal Finder - Recipe Ideas by Ingredient</title>
     <link rel="stylesheet" href="styles.css">
-    </head>
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#333333"> </head>
 <body>
 
     <div class="app-container">
@@ -45,7 +46,7 @@
 
                  <fieldset id="search-options-container">
                     <legend class="visually-hidden">Search Options</legend> <div class="search-option-group">
-                       <span class="option-label">Match:</span>
+                        <span class="option-label">Match:</span>
                         <div class="radio-group">
                             <label>
                                 <input type="radio" name="match-type" value="all" checked> All Ingredients
@@ -56,7 +57,7 @@
                         </div>
                     </div>
                     <div class="search-option-group">
-                        <label for="exclude-input" class="option-label">Exclude Ingredients:</label>
+                         <label for="exclude-input" class="option-label">Exclude Ingredients:</label>
                          <input type="text" id="exclude-input" class="search-input exclude-input" placeholder="e.g., nuts, mushrooms (optional)" aria-label="Enter ingredients to exclude">
                     </div>
                  </fieldset>
@@ -73,7 +74,7 @@
                     <label for="filter-select">Filter by Tag:</label>
                     <select id="filter-select" aria-label="Filter results by tag">
                         <option value="all">Show All</option>
-                        </select>
+                    </select>
                  </div>
             </header>
             <main class="page-content">
@@ -90,13 +91,13 @@
 
         <section id="favourites-page" class="page">
              <header class="page-header">
-                <h2>Your Favourite Meals</h2>
+                 <h2>Your Favourite Meals</h2>
              </header>
              <main class="page-content">
                 <div id="favourites-container" class="results-grid">
                     <p id="no-favourites-message" style="display: none;">You haven't saved any favourites yet!</p>
-                 </div>
-            </main>
+                    </div>
+             </main>
              </section>
 
          <button id="back-button" class="button back-button" style="display: none;" aria-label="Go back to previous page">&larr; Back</button>
@@ -106,19 +107,19 @@
                 <h3 id="overlay-title">Meal Title</h3>
                 <h4>Ingredients:</h4>
                  <ul id="overlay-ingredients"></ul>
-                 <h4>Instructions:</h4>
+                <h4>Instructions:</h4>
                 <p id="overlay-instructions"></p>
             </div>
         </div>
 
         <div id="no-results-popup" class="popup" role="alertdialog" aria-modal="true" aria-labelledby="no-results-title" style="visibility: hidden;"> <div class="popup-content">
                  <button id="popup-close-button" class="button close-button" aria-label="Close no results message">&times;</button>
-                 <h4 id="no-results-title">No Matches Found</h4>
+                <h4 id="no-results-title">No Matches Found</h4>
                 <p>Sorry, our database doesn't have a match for those ingredients right now.</p>
                 <p>Try searching externally:</p>
                 <div id="popup-external-links">
                     </div>
-              </div>
+            </div>
         </div>
 
         <div id="loading-indicator" class="loading-indicator" style="display: none;" role="status" aria-live="polite"> <span class="visually-hidden">Loading...</span> <div class="dot"></div>
@@ -127,7 +128,6 @@
         </div>
 
     </div> <script> window.mealDatabase = []; </script>
-
     <script src="meals_data/meals_asian_inspired.js" defer></script>
     <script src="meals_data/meals_aussie_favourite.js" defer></script>
     <script src="meals_data/meals_beef.js" defer></script>
@@ -149,7 +149,22 @@
     <script src="meals_data/meals_takeaway_classic.js" defer></script>
     <script src="meals_data/meals_winter_warmer.js" defer></script>
 
-    <script src="script.js" defer></script> <style>
+    <script src="script.js" defer></script>
+
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/service-worker.js') // Path to your service worker file
+            .then(registration => {
+              console.log('ServiceWorker registration successful with scope: ', registration.scope);
+            })
+            .catch(err => {
+              console.log('ServiceWorker registration failed: ', err);
+            });
+        });
+      }
+    </script>
+    <style>
       .visually-hidden {
         position: absolute;
         width: 1px;
