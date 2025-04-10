@@ -1,786 +1,1182 @@
 // script.js
-// Main application logic for MEAL FINDER
-// VERSION 3.19: Removes Taste.com.au external link.
-// (Incorporates previous V3.17 fixes)
+// Main application logic for MEAL FINDER - Version 4.0 Optimized
+// Includes PWA Install Prompt Handling & Service Worker Registration
 
 document.addEventListener('DOMContentLoaded', () => {
-    // console.log("DOM Loaded. Initializing Meal Finder V3.19...");
+    console.log("Meal Finder script initializing...");
 
     // --- DOM Element Selection ---
-    const appContainer = document.querySelector('.app-container');
-    const pages = document.querySelectorAll('.page'); // Get all page elements
-    const homePage = document.getElementById('home-page');
-    const searchPage = document.getElementById('search-page');
-    const resultsPage = document.getElementById('results-page');
-    const favouritesPage = document.getElementById('favourites-page');
+    let appContainer, pages, homePage, searchPage, resultsPage, favouritesPage, recipeBookPage,
+        homeSearchButton, randomMealButton, goToRecipeBookButton, randomMealDisplay,
+        viewFavouritesHomeButton, searchPageInput, suggestedIngredientsAnim, matchTypeRadios,
+        excludeInput, searchPageButton, viewFavouritesSearchButton, resultsContainer,
+        resultsPageTitle, filterContainer, filterSelect, externalSearchContainer, externalLinksDiv,
+        favouritesContainer, noFavouritesMessage, categoryContainer, backButton, mealOverlay,
+        overlayCloseButton, noResultsPopup, popupCloseButton, loadingIndicator, overlayImage,
+        overlayDescription, overlayTitle, overlayIngredients, overlayInstructions,
+        popupExternalLinksDiv, paginationContainer, prevButton, nextButton, pageInfo,
+        installPwaButton; // Added for PWA install
 
-    const homeSearchButton = document.getElementById('home-search-button');
-    const randomMealButton = document.getElementById('random-meal-button');
-    const randomMealDisplay = document.getElementById('random-meal-display');
-    const viewFavouritesHomeButton = document.getElementById('view-favourites-home-button');
+    try {
+        // Select all elements, checking crucial ones
+        appContainer = document.querySelector('.app-container');
+        pages = document.querySelectorAll('.page');
+        homePage = document.getElementById('home-page');
+        searchPage = document.getElementById('search-page');
+        resultsPage = document.getElementById('results-page');
+        favouritesPage = document.getElementById('favourites-page');
+        recipeBookPage = document.getElementById('recipe-book-page');
+        homeSearchButton = document.getElementById('home-search-button');
+        randomMealButton = document.getElementById('random-meal-button');
+        goToRecipeBookButton = document.getElementById('go-to-recipe-book-button');
+        randomMealDisplay = document.getElementById('random-meal-display');
+        viewFavouritesHomeButton = document.getElementById('view-favourites-home-button');
+        searchPageInput = document.getElementById('search-page-input');
+        suggestedIngredientsAnim = document.getElementById('suggested-ingredients-animation');
+        matchTypeRadios = document.querySelectorAll('input[name="match-type"]');
+        excludeInput = document.getElementById('exclude-input');
+        searchPageButton = document.getElementById('search-page-button');
+        viewFavouritesSearchButton = document.getElementById('view-favourites-search-button');
+        resultsContainer = document.getElementById('results-container');
+        resultsPageTitle = document.getElementById('results-page-title');
+        filterContainer = document.getElementById('filter-container');
+        filterSelect = document.getElementById('filter-select');
+        externalSearchContainer = document.getElementById('external-search-container');
+        externalLinksDiv = document.getElementById('external-links');
+        favouritesContainer = document.getElementById('favourites-container');
+        noFavouritesMessage = document.getElementById('no-favourites-message');
+        categoryContainer = document.getElementById('category-container');
+        backButton = document.getElementById('back-button');
+        mealOverlay = document.getElementById('meal-overlay');
+        overlayCloseButton = document.getElementById('overlay-close-button');
+        noResultsPopup = document.getElementById('no-results-popup');
+        popupCloseButton = document.getElementById('popup-close-button');
+        loadingIndicator = document.getElementById('loading-indicator');
+        overlayImage = document.getElementById('overlay-image');
+        overlayDescription = document.getElementById('overlay-description');
+        installPwaButton = document.getElementById('install-pwa-button'); // Get the PWA install button
 
-    const searchPageInput = document.getElementById('search-page-input');
-    const suggestedIngredientsAnim = document.getElementById('suggested-ingredients-animation');
-    const matchTypeRadios = document.querySelectorAll('input[name="match-type"]');
-    const excludeInput = document.getElementById('exclude-input');
-    const searchPageButton = document.getElementById('search-page-button');
-    const viewFavouritesSearchButton = document.getElementById('view-favourites-search-button');
+        if (mealOverlay) {
+            overlayTitle = mealOverlay.querySelector('#overlay-title');
+            overlayIngredients = mealOverlay.querySelector('#overlay-ingredients');
+            overlayInstructions = mealOverlay.querySelector('#overlay-instructions');
+        } else { console.warn("WARN: #meal-overlay missing."); }
+        if (noResultsPopup) { popupExternalLinksDiv = noResultsPopup.querySelector('#popup-external-links'); } else { console.warn("WARN: #no-results-popup missing."); }
+        paginationContainer = document.getElementById('pagination-container');
+        if (paginationContainer) {
+            prevButton = document.getElementById('prev-button');
+            nextButton = document.getElementById('next-button');
+            pageInfo = document.getElementById('page-info');
+        } else { console.warn("WARN: #pagination-container missing."); }
 
-    const resultsContainer = document.getElementById('results-container');
-    const resultsPageTitle = document.getElementById('results-page-title');
-    const filterContainer = document.getElementById('filter-container');
-    const filterSelect = document.getElementById('filter-select');
-    const externalSearchContainer = document.getElementById('external-search-container');
-    const externalLinksDiv = document.getElementById('external-links');
+        // Essential element check
+        if (!appContainer || !homePage || !resultsPage || !categoryContainer || !resultsContainer || !favouritesContainer || !loadingIndicator) {
+            throw new Error("Core layout elements missing. Cannot initialize app.");
+        }
+        // Optional element warnings
+        if (!installPwaButton) { console.warn("WARN: #install-pwa-button missing. PWA install prompt UI will not appear."); }
 
-    const favouritesContainer = document.getElementById('favourites-container');
-    const noFavouritesMessage = document.getElementById('no-favourites-message');
-    const backButton = document.getElementById('back-button');
-    const mealOverlay = document.getElementById('meal-overlay');
-    const overlayContent = mealOverlay.querySelector('.overlay-content');
-    const overlayTitle = document.getElementById('overlay-title');
-    const overlayIngredients = document.getElementById('overlay-ingredients');
-    const overlayInstructions = document.getElementById('overlay-instructions');
-    const overlayCloseButton = document.getElementById('overlay-close-button');
-    const noResultsPopup = document.getElementById('no-results-popup');
-    const popupCloseButton = document.getElementById('popup-close-button');
-    const popupExternalLinksDiv = document.getElementById('popup-external-links');
-    const loadingIndicator = document.getElementById('loading-indicator');
+
+    } catch (error) {
+        console.error("CRITICAL ERROR during DOM element selection:", error);
+        if (appContainer) appContainer.innerHTML = `<h1>App Initialization Failed</h1><p>Error: ${error.message}. Please check the HTML structure.</p>`;
+        return; // Stop script execution if essential elements are missing
+    }
 
     // --- State Variables ---
     let currentPageId = 'home-page';
     let pageHistory = ['home-page'];
     let currentSearchTerms = [];
+    let currentDisplayContext = '';
     let currentSearchResults = [];
-    let currentFavourites = getFavourites();
+    let currentFavourites = [];
     let suggestedIngredientsInterval;
-    const suggestedIngredients = ["chicken", "beef", "pasta", "rice", "onions", "tomatoes", "cheese", "potatoes", "flour", "eggs", "broccoli", "carrot", "fish", "mince", "capsicum"];
+    const suggestedIngredients = [ "chicken", "beef", "pasta", "rice", "onions", "tomatoes", "cheese", "potatoes", "flour", "eggs", "broccoli", "carrot", "fish", "mince", "capsicum" ];
+    let allMealIdsFromSource = [];
+    let currentDisplayPage = 1;
+    const RESULTS_PER_PAGE = 12;
+    let availableCategories = [];
+    let deferredInstallPrompt = null; // For PWA installation
 
-    // --- Define Meal Type Tags ---
-    const mealTypeTags = [
-        'asian_inspired', 'aussie_favourite', 'beef', 'british', 'cheese',
-        'chicken', 'chinese', 'chips', 'deep_fried', 'family_favourite',
-        'fish', 'italian', 'pasta', 'pub_classic', 'quick_meal',
-        'schnitzel', 'seafood', 'stir_fry', 'takeaway_classic', 'winter_warmer'
-    ];
+    // --- Define Meal Type Tags & Categories ---
+    const mealTypeTagsForFilter = [ 'Beef', 'Breakfast', 'Chicken', 'Dessert', 'Goat', 'Lamb', 'Pasta', 'Pork', 'Seafood', 'Side', 'Starter', 'Vegan', 'Vegetarian' ].sort();
+    const desiredCategories = [ 'Beef', 'Breakfast', 'Chicken', 'Dessert', 'Goat', 'Lamb', 'Pasta', 'Pork', 'Seafood', 'Side', 'Starter', 'Vegan', 'Vegetarian' ];
 
-    // --- Helper Functions ---
+    // --- API Configuration ---
+    const API_BASE_URL = "https://www.themealdb.com/api/json/v1/1/";
+    const API_LIST_CATEGORIES_URL = API_BASE_URL + "list.php?c=list";
+    const API_FILTER_BY_CATEGORY_URL = API_BASE_URL + "filter.php?c=";
+    const API_SEARCH_BY_INGREDIENT_URL = API_BASE_URL + "filter.php?i="; // Note: Only supports one ingredient
+    const API_LOOKUP_BY_ID_URL = API_BASE_URL + "lookup.php?i=";
+    const API_RANDOM_URL = API_BASE_URL + "random.php";
 
-    /**
-     * Cleans a meal name for consistent comparison (lowercase, trim).
-     * @param {string | undefined} name - The meal name.
-     * @returns {string} - The cleaned name or an empty string.
-     */
-    function cleanMealName(name) {
-        return (typeof name === 'string' ? name.trim().toLowerCase() : '');
-    }
+    // --- Utility Functions ---
+    function showLoading() { loadingIndicator?.classList.remove('hidden-display'); }
+    function hideLoading() { loadingIndicator?.classList.add('hidden-display'); }
+    function cleanInputString(inputString) { return typeof inputString === 'string' ? inputString.toLowerCase().trim() : ''; }
+    function parseSearchInput(inputString) { if (!inputString) { return []; } try { return inputString.toLowerCase().trim().split(/[\s,]+/).map(term => term.trim()).filter(term => term !== ''); } catch (e) { console.error("Error parsing input:", e); return []; } }
+    function generateExternalLinks(terms) { if (!terms || terms.length === 0) return ''; const q = encodeURIComponent(terms.join(' ')); const s = [{ n: "Google", u: `https://www.google.com/search?q=${q}+recipe` }, { n: "Allrecipes", u: `https://www.allrecipes.com/search/results/?search=${q}` }]; return s.map(x => `<a href="${x.u}" target="_blank" rel="noopener noreferrer">${x.n}</a>`).join(''); }
 
-
-    /**
-     * De-duplicates the global window.mealDatabase array based on cleaned meal.name.
-     */
-    function deduplicateMealDatabase() {
-        if (window.mealDatabase && Array.isArray(window.mealDatabase)) {
-            const initialCount = window.mealDatabase.length;
-            const uniqueMealMap = new Map(); // Use cleaned name as key
-
-            window.mealDatabase.forEach(meal => {
-                if (meal && typeof meal.name !== 'undefined') {
-                    const cleanedName = cleanMealName(meal.name);
-                    if (cleanedName && !uniqueMealMap.has(cleanedName)) {
-                        uniqueMealMap.set(cleanedName, meal);
-                    }
-                }
-            });
-
-            window.mealDatabase = Array.from(uniqueMealMap.values()); // Replace original DB
-            const finalCount = window.mealDatabase.length;
-            if (initialCount !== finalCount) {
-                 // console.log(`Meal database de-duplicated by NAME. Removed ${initialCount - finalCount} duplicates. Total unique meals: ${finalCount}`);
-            }
-        } else {
-            // console.warn("Attempted to de-duplicate meal database, but it was not found or not an array.");
+    // --- API Helper Functions ---
+    async function fetchFromApi(url, isSilent = false) {
+        if (!isSilent) showLoading();
+        try {
+            const response = await fetch(url);
+            if (!response.ok) { throw new Error(`HTTP error! Status: ${response.status}`); }
+            const data = await response.json();
+            return data;
+        } catch (error) {
+            console.error(`Error fetching ${url}:`, error);
+            if (!isSilent) hideLoading();
+            // Return a structure consistent with expected API responses (empty meals array)
+            return { meals: [] };
+        } finally {
+             if (!isSilent) hideLoading();
         }
     }
 
+    async function fetchMealById(mealId, isSilent = false) {
+        const data = await fetchFromApi(API_LOOKUP_BY_ID_URL + mealId, isSilent);
+        if (data?.meals?.length > 0) {
+            return adaptApiMealData(data.meals[0]);
+        }
+        console.warn(`Meal details not found or failed to fetch for ID: ${mealId}`);
+        return null;
+    }
 
-    /**
-     * Navigates between pages by instantly hiding the old and showing the new.
-     * @param {string} targetPageId - The ID of the page to navigate to.
-     * @param {boolean} [isBack=false] - True if navigating back in history.
-     */
+    async function fetchRandomMeal() {
+        const data = await fetchFromApi(API_RANDOM_URL);
+        // Return raw data, adaptation happens in the calling function
+        if (data?.meals?.length > 0) {
+            return data.meals[0];
+        }
+        return null;
+    }
+
+    function adaptApiMealData(apiMeal) {
+        if (!apiMeal || !apiMeal.idMeal) { return null; }
+        try {
+            let ingredients = [];
+            for (let i = 1; i <= 20; i++) {
+                const ing = apiMeal[`strIngredient${i}`];
+                const meas = apiMeal[`strMeasure${i}`];
+                if (ing && ing.trim()) {
+                    ingredients.push({ name: ing.trim(), measure: (meas || "").trim() });
+                } else {
+                    break; // Stop if no more ingredients
+                }
+            }
+            const ingredientListForDisplay = ingredients.map(ing => `${ing.measure} ${ing.name}`.trim());
+
+            let shortDescription = '';
+            if (apiMeal.strCategory && apiMeal.strArea) { shortDescription = `${apiMeal.strCategory} | ${apiMeal.strArea}`; }
+            else if (apiMeal.strCategory) { shortDescription = apiMeal.strCategory; }
+            else if (apiMeal.strArea) { shortDescription = apiMeal.strArea; }
+            else { shortDescription = 'Details available.'; }
+
+            let processedTags = [];
+            if (apiMeal.strTags && typeof apiMeal.strTags === 'string') {
+                 processedTags = apiMeal.strTags.split(',')
+                     .map(tag => tag.trim())
+                     .filter(tag => tag !== '');
+            }
+
+            return {
+                id: parseInt(apiMeal.idMeal),
+                name: apiMeal.strMeal || "Unnamed Meal",
+                shortDescription: shortDescription,
+                imageUrl: apiMeal.strMealThumb || null,
+                ingredients: ingredientListForDisplay, // For display in overlay
+                ingredientObjects: ingredients, // For potential future use (e.g., filtering)
+                instructions: apiMeal.strInstructions || "No instructions provided.",
+                // Basic tags for filtering (can be expanded)
+                tags: [apiMeal.strCategory, apiMeal.strArea].filter(t => t && t.trim() && t.toLowerCase() !== 'unknown'),
+                processedTags: processedTags, // Parsed strTags for display
+                sourceUrl: apiMeal.strSource || apiMeal.strYoutube || null
+            };
+        } catch (error) {
+            console.error(`Error adapting data for meal ID ${apiMeal.idMeal}:`, error);
+            return null; // Return null if adaptation fails
+        }
+    }
+
+    // --- API Functions for Search/Browse ---
+    async function fetchMealIdsByIngredient(ingredient) {
+        if (!ingredient) return [];
+        const data = await fetchFromApi(API_SEARCH_BY_INGREDIENT_URL + ingredient);
+        return data?.meals || []; // Return array directly, handles null/undefined meals
+    }
+
+    async function fetchMealIdsByCategory(category) {
+        if (!category) return [];
+        const data = await fetchFromApi(API_FILTER_BY_CATEGORY_URL + category);
+        return data?.meals || []; // Return array directly
+    }
+
+
+    // --- Navigation ---
     function navigateTo(targetPageId, isBack = false) {
-        hideLoading();
+        hideLoading(); // Ensure loading is hidden on navigation
         const targetPageElement = document.getElementById(targetPageId);
-        const currentPageElement = document.getElementById(currentPageId);
-
-        if (!targetPageElement || currentPageId === targetPageId) {
+        if (!targetPageElement) {
+            console.error(`ERROR: Cannot navigate to missing page ID: ${targetPageId}`);
             return;
         }
 
-        // Update History
+        // Avoid unnecessary actions if already on the target page
+        if (currentPageId === targetPageId && targetPageElement.classList.contains('active')) {
+            return;
+        }
+
+        // Update history if navigating forward to a new page
         if (!isBack && pageHistory[pageHistory.length - 1] !== targetPageId) {
             pageHistory.push(targetPageId);
+            // Limit history size
+            if (pageHistory.length > 10) pageHistory.shift();
         }
-        if (pageHistory.length > 10) pageHistory.shift();
 
-        // --- Simplified Page Switching ---
-        pages.forEach(page => {
-            page.classList.remove('active');
-            page.style.display = 'none';
-            page.classList.remove('page-enter', 'page-enter-active', 'page-leave', 'page-leave-active');
+        // Hide current page
+        const currentPageElement = document.getElementById(currentPageId);
+        if (currentPageElement && currentPageElement !== targetPageElement) {
+            currentPageElement.classList.remove('active');
+            // Use transitionend event for better reliability than setTimeout
+            currentPageElement.addEventListener('transitionend', () => {
+                 if (!currentPageElement.classList.contains('active')) { // Double check state
+                     currentPageElement.classList.add('hidden-display');
+                 }
+            }, { once: true });
+             // Fallback if transition doesn't fire (e.g., element removed quickly)
+            setTimeout(() => {
+                if (!currentPageElement.classList.contains('active')) {
+                    currentPageElement.classList.add('hidden-display');
+                }
+            }, 600); // Slightly longer than CSS transition
+        }
+
+        // Show target page
+        targetPageElement.classList.remove('hidden-display'); // Make it available for layout
+        // Use requestAnimationFrame to ensure 'display' change is processed before adding 'active' class for transition
+        requestAnimationFrame(() => {
+            targetPageElement.classList.add('active');
         });
 
-        targetPageElement.style.display = 'flex';
-        targetPageElement.classList.add('active');
         currentPageId = targetPageId;
-        backButton.style.display = (pageHistory.length > 1) ? 'inline-block' : 'none';
 
-        if (currentPageId === 'search-page') {
-            startSearchAnimation();
-        } else {
-            stopSearchAnimation();
+        // Update back button visibility
+        if (backButton) {
+            if (pageHistory.length > 1) {
+                backButton.classList.remove('hidden-display');
+            } else {
+                backButton.classList.add('hidden-display');
+            }
         }
-        window.scrollTo(0, 0);
+
+        // Page specific actions
+        if (currentPageId === 'search-page') startSearchAnimation(); else stopSearchAnimation();
+        if (targetPageId === 'recipe-book-page') { fetchAndDisplayCategories(); }
+        if (targetPageId === 'favourites-page') { displayFavourites(); } // Load favourites when navigating TO favourites page
+
+        window.scrollTo(0, 0); // Scroll to top on navigation
     }
 
-
-    /** Navigates back in the page history. */
     function goBack() {
         if (pageHistory.length > 1) {
-            pageHistory.pop();
-            navigateTo(pageHistory[pageHistory.length - 1], true);
-        } else {
-            // console.warn("goBack called with insufficient history.");
+            pageHistory.pop(); // Remove current page from history
+            navigateTo(pageHistory[pageHistory.length - 1], true); // Navigate to the previous one
+        } else if (currentPageId !== 'home-page') {
+            // If history is empty but not on home, go home
+            navigateTo('home-page', true);
         }
     }
 
-    /** Starts the suggested ingredients animation on the search page. */
-    function startSearchAnimation() {
-        stopSearchAnimation();
-        let index = Math.floor(Math.random() * suggestedIngredients.length);
-        const textElement = suggestedIngredientsAnim?.querySelector('span');
-
-        if (!textElement || currentPageId !== 'search-page') return;
-
-        textElement.textContent = suggestedIngredients[index] + "...";
-        textElement.style.opacity = 1;
-
-        suggestedIngredientsInterval = setInterval(() => {
-            if (currentPageId !== 'search-page') {
-                stopSearchAnimation();
-                return;
-            }
-            textElement.style.opacity = 0;
-            setTimeout(() => {
-                if (currentPageId !== 'search-page') return;
-                index = (index + 1) % suggestedIngredients.length;
-                textElement.textContent = suggestedIngredients[index] + "...";
-                textElement.style.opacity = 1;
-            }, 300);
-        }, 2500);
-    }
-
-    /** Stops the suggested ingredients animation. */
+    // Placeholder for search animation logic
+    function startSearchAnimation() { /* ... implement if needed ... */ }
     function stopSearchAnimation() {
         if (suggestedIngredientsInterval) {
             clearInterval(suggestedIngredientsInterval);
             suggestedIngredientsInterval = null;
         }
-        const textElement = suggestedIngredientsAnim?.querySelector('span');
-        if (textElement) {
-            textElement.style.opacity = 0;
-        }
+        if (suggestedIngredientsAnim) { suggestedIngredientsAnim.innerHTML = ''; }
     }
 
-    /** Shows the loading indicator. */
-    function showLoading() {
-        if (loadingIndicator) loadingIndicator.style.display = 'flex';
-    }
 
-    /** Hides the loading indicator. */
-    function hideLoading() {
-        if (loadingIndicator) loadingIndicator.style.display = 'none';
-    }
+    // --- UI Display Functions ---
 
-    /**
-     * Parses a search input string into an array of lowercase terms.
-     * @param {string} inputString - The string from the search input.
-     * @returns {string[]} An array of cleaned, lowercase search terms.
-     */
-    function parseSearchInput(inputString) {
-        if (!inputString) return [];
-        return inputString
-            .toLowerCase()
-            .trim()
-            .split(/[\s,]+/)
-            .map(term => term.trim())
-            .filter(term => term !== '');
-    }
-
-    /**
-     * Filters the meal database based on search terms and exclusions.
-     * Ensures the database is de-duplicated by name before filtering.
-     * @param {string[]} terms - Array of ingredients to search for.
-     * @param {boolean} [matchAny=false] - If true, match meals containing any term; otherwise, match meals containing all terms.
-     * @returns {object[]} An array of matching meal objects.
-     */
-    function performSearch(terms, matchAny = false) {
-        deduplicateMealDatabase();
-
-        if (!window.mealDatabase || !Array.isArray(window.mealDatabase)) {
-            console.error("Meal database is missing or not an array after de-duplication attempt.");
-            return [];
-        }
-
-        const excludedTerms = parseSearchInput(excludeInput.value);
-
-        if (terms.length === 0 && excludedTerms.length === 0) {
-             return [];
-        }
-
-        try {
-            return window.mealDatabase.filter(meal => {
-                if (!meal || typeof meal !== 'object' || !Array.isArray(meal.ingredientKeywords)) {
-                    return false;
-                }
-                const keywords = meal.ingredientKeywords;
-
-                if (excludedTerms.length > 0) {
-                    if (excludedTerms.some(exTerm => keywords.some(kw => kw.includes(exTerm)))) {
-                        return false;
-                    }
-                }
-                if (terms.length === 0 && excludedTerms.length > 0) {
-                    return true;
-                }
-                if (matchAny) {
-                    return terms.some(term => keywords.some(kw => kw.includes(term)));
-                } else {
-                    return terms.every(term => keywords.some(kw => kw.includes(term)));
-                }
-            });
-        } catch (error) {
-            console.error("Error within performSearch filter logic:", error, error.stack);
-            return [];
-        }
-    }
-
-    /**
-     * Creates HTML string for a single meal card.
-     * @param {object} meal - The meal object from the database.
-     * @returns {string} HTML string for the meal card, or an error message string.
-     */
     function createMealCard(meal) {
+        // Basic validation
         if (!meal || typeof meal.id === 'undefined' || typeof meal.name === 'undefined') {
-            console.error("[createMealCard] Invalid meal data received (missing id or name):", meal);
-            return '<p class="error-message">Error loading meal card data.</p>';
+            console.error("[createMealCard] Invalid meal data provided:", meal);
+            return '<p class="error-message">Error: Could not display meal card due to invalid data.</p>';
         }
 
         const isFavourite = currentFavourites.includes(meal.id);
-        const favButtonClass = isFavourite ? 'favourite-button active' : 'favourite-button';
-        const favButtonTitle = isFavourite ? 'Remove from Favourites' : 'Add to Favourites';
-        const googleImageQuery = encodeURIComponent(meal.name);
-        const googleImageUrl = `https://www.google.com/search?tbm=isch&q=${googleImageQuery}`;
+        const favClass = isFavourite ? 'favourite-button active' : 'favourite-button';
+        const favTitle = isFavourite ? 'Remove from Favourites' : 'Add to Favourites';
 
         try {
-            const mealName = meal.name;
-            const mealDescription = meal.description || 'Recipe details available inside.';
+            const name = meal.name || "Unnamed Meal";
+            const desc = meal.shortDescription || 'Tap or click for details.';
+            const id = meal.id;
+            let imgHtml = '';
 
-            return `
-                <article class="meal-card" data-meal-id="${meal.id}" tabindex="0">
-                    <div class="meal-card-header">
-                        <div class="card-logo logo logo-small">
-                            <span class="logo-center">M</span>
-                        </div>
-                        <h3>${mealName}</h3>
-                        <button class="${favButtonClass}" data-meal-id="${meal.id}" title="${favButtonTitle}" aria-label="${favButtonTitle}">
-                           </button>
-                    </div>
-                    <div class="meal-card-content">
-                        <p>${mealDescription}</p>
-                        <a href="${googleImageUrl}" class="google-image-link" target="_blank" rel="noopener noreferrer">View Images on Google</a>
-                    </div>
-                </article>
-            `;
-        } catch (error) {
-            console.error(`Error creating card HTML for meal ID ${meal.id} (Name: ${meal.name}):`, error, error.stack);
-            return '<p class="error-message">Error displaying this meal.</p>';
+            // Image handling
+            if (meal.imageUrl) {
+                const fullImageUrl = meal.imageUrl.replace(/\/preview$/, ''); // Attempt to get full size
+                // Added error handling for image loading
+                imgHtml = `<div class="meal-card-image-container">
+                           <a href="${fullImageUrl || meal.imageUrl}" target="_blank" rel="noopener noreferrer" title="View full image">
+                             <img src="${meal.imageUrl}" alt="${name}" class="meal-card-image" loading="lazy" onerror="this.parentElement.innerHTML='<p>Image unavailable</p>';">
+                           </a>
+                         </div>`;
+            } else {
+                imgHtml = '<div class="meal-card-image-container"><p>No Image</p></div>';
+            }
+
+            // Tags handling
+            let tagsHtml = '';
+            if (meal.processedTags && meal.processedTags.length > 0) {
+                tagsHtml = `<div class="meal-card-tags">
+                              ${meal.processedTags.map(tag => `<span class="tag-item">${tag}</span>`).join('')}
+                            </div>`;
+            }
+
+            // Final Card HTML
+            return `<article class="meal-card" data-meal-id="${id}" tabindex="0" role="listitem" aria-labelledby="meal-title-${id}">
+                      <div class="meal-card-header">
+                        <div class="card-logo logo logo-small" aria-hidden="true"><span>M</span></div>
+                        <h3 id="meal-title-${id}">${name}</h3>
+                        <button class="${favClass}" data-meal-id="${id}" title="${favTitle}" aria-label="${favTitle}"></button>
+                      </div>
+                      <div class="meal-card-content">
+                        ${imgHtml}
+                        <p class="meal-card-description">${desc}</p>
+                        ${tagsHtml}
+                      </div>
+                    </article>`;
+
+        } catch (e) {
+            console.error(`ERROR creating card HTML for meal ID ${meal?.id}:`, e);
+            return `<p class="error-message">Error displaying meal (ID: ${meal?.id}).</p>`; // Provide specific error feedback
         }
     }
 
-    /** Populates the filter dropdown options based on the predefined mealTypeTags list. */
     function populateFilterOptions() {
+        if (!filterSelect) { console.warn("WARN: filterSelect element missing, cannot populate."); return; }
         try {
-            if (!filterSelect) return;
+            const currentFilterValue = filterSelect.value; // Store current selection
+            filterSelect.innerHTML = ''; // Clear existing options
 
-            const currentFilterValue = filterSelect.value;
-            filterSelect.innerHTML = '';
-
+            // Add "Show All" option
             const allOption = document.createElement('option');
             allOption.value = 'all';
             allOption.textContent = 'Show All';
             filterSelect.appendChild(allOption);
 
-            mealTypeTags
-                .sort((a, b) => a.localeCompare(b))
-                .forEach(tag => {
+            // Add options from predefined list
+            mealTypeTagsForFilter.forEach(tag => {
+                if (tag && tag.trim()) {
                     const option = document.createElement('option');
-                    option.value = tag.toLowerCase();
-                    option.textContent = tag.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                    option.value = tag;
+                    option.textContent = tag;
                     filterSelect.appendChild(option);
-                });
+                }
+            });
 
-            const validValues = ['all', ...mealTypeTags.map(t => t.toLowerCase())];
+            // Restore previous selection if still valid, otherwise default to 'all'
+            const validValues = ['all', ...mealTypeTagsForFilter];
             filterSelect.value = validValues.includes(currentFilterValue) ? currentFilterValue : 'all';
 
         } catch (e) {
-            console.error("Error populating filters:", e, e.stack);
-            if (filterSelect) filterSelect.innerHTML = '<option value="all">Error loading tags</option>';
+            console.error("Error populating filter options:", e);
+            if (filterSelect) filterSelect.innerHTML = '<option value="all">Error loading filters</option>'; // User feedback
         }
     }
 
-
-    /** Filters the displayed results based on the selected tag (matching meal.tags). */
     function filterResults() {
+        if (!filterSelect || !resultsContainer) return;
+
         try {
-            const selectedTagValue = filterSelect.value;
+            const selectedFilter = filterSelect.value.toLowerCase();
             const mealCards = resultsContainer.querySelectorAll('.meal-card');
 
-            if (mealCards.length === 0) return;
+            if (mealCards.length === 0) return; // No cards to filter
 
+            let visibleCount = 0;
             mealCards.forEach(card => {
                 const mealId = parseInt(card.dataset.mealId);
                 if (isNaN(mealId)) {
-                    card.style.display = 'none';
+                    card.classList.add('hidden-display'); // Hide invalid cards
                     return;
                 }
 
-                const meal = currentSearchResults.find(m => m && m.id === mealId);
-
-                if (!meal) {
-                    card.style.display = 'none';
+                // Find the corresponding meal data in the current results
+                const mealData = currentSearchResults.find(meal => meal && meal.id === mealId);
+                if (!mealData) {
+                    card.classList.add('hidden-display'); // Hide if data not found
                     return;
-                 };
+                };
 
-                let shouldShow = false;
-                if (selectedTagValue === 'all') {
-                    shouldShow = true;
-                } else if (meal.tags && Array.isArray(meal.tags)) {
-                    const cleanedSelectedTag = selectedTagValue.replace(/_/g, ' ').trim();
+                // Determine if the card should be shown based on the filter
+                let showCard = (selectedFilter === 'all') ||
+                               (mealData.tags && Array.isArray(mealData.tags) &&
+                                mealData.tags.some(tag => tag && tag.toLowerCase() === selectedFilter));
 
-                    shouldShow = meal.tags.some(mealTag => {
-                        if (typeof mealTag !== 'string') return false;
-                        const cleanedMealTag = mealTag.toLowerCase().replace(/_/g, ' ').trim();
-                        return cleanedMealTag === cleanedSelectedTag;
-                    });
+                // Toggle visibility using classes
+                if (showCard) {
+                    card.classList.remove('hidden-display');
+                    visibleCount++;
+                } else {
+                    card.classList.add('hidden-display');
                 }
-
-                card.style.display = shouldShow ? 'flex' : 'none';
             });
+             // console.log(`Filter applied: ${visibleCount} cards visible for '${selectedFilter}'`);
+
         } catch (e) {
-            console.error("Error filtering results:", e, e.stack);
+            console.error("Error applying filter:", e);
+            // Potentially show an error message to the user
         }
     }
 
-    /**
-     * Generates HTML for external search links.
-     * REMOVED Taste.com.au link.
-     * @param {string[]} terms - Array of search terms.
-     * @returns {string} HTML string for the links.
-     */
-    function generateExternalLinks(terms) {
-        if (!terms || terms.length === 0) return '';
-        const encodedTerms = terms.map(term => encodeURIComponent(term)).join('+');
+    function displayResults(mealIdList, contextTitle, isSearch = true) {
+        currentSearchResults = []; // Clear previous results data
+        allMealIdsFromSource = mealIdList || []; // Store all IDs from the source (API response)
+        currentDisplayPage = 1; // Reset to page 1
+        currentDisplayContext = contextTitle || (isSearch ? 'Search Results' : 'Category'); // Set context title
 
-        // Links to Google and AllRecipes
-        const googleUrl = `https://www.google.com/search?q=${encodedTerms}+recipes`;
-        const allrecipesUrl = `https://www.allrecipes.com/search?q=${encodedTerms}`;
-        // REMOVED: const tasteUrl = `https://www.taste.com.au/search?q=${encodedTerms}`;
+        if (resultsPageTitle) {
+            resultsPageTitle.textContent = currentDisplayContext;
+            resultsPageTitle.classList.remove('hidden-display');
+        } else { console.warn("WARN: resultsPageTitle missing"); }
 
-        return `
-            <a href="${googleUrl}" target="_blank" rel="noopener noreferrer">Search Google</a>
-            <a href="${allrecipesUrl}" target="_blank" rel="noopener noreferrer">Search AllRecipes</a>
-        `;
-        // REMOVED: <a href="${tasteUrl}" target="_blank" rel="noopener noreferrer">Search Taste.com.au</a>
+        if (!resultsContainer) { console.error("CRITICAL: resultsContainer is null. Cannot display results."); hideLoading(); return; }
+        resultsContainer.innerHTML = ''; // Clear previous content immediately
+
+        // Reset related UI elements
+        externalSearchContainer?.classList.add('hidden-display');
+        hidePopup(); // Hide the 'no results' popup if it was open
+
+        if (filterContainer) {
+            if (isSearch && allMealIdsFromSource.length > 0) {
+                filterContainer.classList.remove('hidden-display');
+                if (filterSelect) {
+                    populateFilterOptions(); // Repopulate and reset filter
+                    filterSelect.value = 'all';
+                }
+            } else {
+                filterContainer.classList.add('hidden-display');
+            }
+        } else { console.warn("WARN: filterContainer missing."); }
+
+        paginationContainer?.classList.add('hidden-display'); // Hide pagination initially
+
+        // --- Display Logic ---
+        if (allMealIdsFromSource.length > 0) {
+            displayPaginatedResults(); // Fetch and display the first page
+            // Show external links only for searches with terms and results
+            if (isSearch && currentSearchTerms.length > 0 && externalLinksDiv && externalSearchContainer) {
+                 externalLinksDiv.innerHTML = generateExternalLinks(currentSearchTerms);
+                 externalSearchContainer.classList.remove('hidden-display');
+            }
+        } else {
+            // --- No Results Handling ---
+            if (resultsPageTitle) resultsPageTitle.textContent = `No Meals Found for "${contextTitle}"`;
+
+            if (isSearch && currentSearchTerms.length > 0) {
+                // Show popup with external links for searches
+                if (popupExternalLinksDiv && noResultsPopup) {
+                    popupExternalLinksDiv.innerHTML = generateExternalLinks(currentSearchTerms);
+                    noResultsPopup.classList.remove('hidden-visually'); // Use visibility class
+                    noResultsPopup.classList.add('active');
+                } else {
+                    // Fallback message if popup elements are missing
+                    resultsContainer.innerHTML = '<p>Sorry, no meals found matching your search terms.</p>';
+                }
+            } else {
+                // Simple message for categories with no results
+                resultsContainer.innerHTML = `<p>No meals found in the category: "${contextTitle}".</p>`;
+            }
+            hideLoading();
+        }
     }
 
-    /**
-     * Displays search results or the "no results" popup.
-     * @param {object[]} results - Array of meal objects (unique by name from performSearch).
-     * @param {string[]} terms - The search terms used.
-     */
-    function displayResults(results, terms) {
-        resultsContainer.innerHTML = '';
-        externalSearchContainer.style.display = 'none';
-        noResultsPopup.classList.remove('active');
-        filterContainer.style.display = 'none';
 
-        currentSearchResults = results || [];
+    async function displayPaginatedResults() {
+        if (!resultsContainer) return;
+        showLoading();
+        resultsContainer.innerHTML = ''; // Clear container for new page
+
+        const startIndex = (currentDisplayPage - 1) * RESULTS_PER_PAGE;
+        const endIndex = startIndex + RESULTS_PER_PAGE;
+        const mealIdsToFetch = allMealIdsFromSource.slice(startIndex, endIndex);
+
+        if (mealIdsToFetch.length === 0) {
+            resultsContainer.innerHTML = "<p>No more meals to display for this page.</p>"; // Should ideally not happen if pagination logic is correct
+            hideLoading();
+            updatePaginationButtons();
+            return;
+        }
+
+        // Fetch details for the current page's meals
+        // Use isSilent = true for fetchMealById to avoid multiple loading indicators
+        const mealDetailPromises = mealIdsToFetch.map(stub => fetchMealById(stub.idMeal, true));
+        const results = await Promise.allSettled(mealDetailPromises);
+
+        // Filter out failed requests and extract successful meal data
+        currentSearchResults = results
+            .filter(result => result.status === 'fulfilled' && result.value)
+            .map(result => result.value);
 
         if (currentSearchResults.length > 0) {
-            resultsPageTitle.style.display = 'block';
+            const cardsHtml = currentSearchResults.map(meal => createMealCard(meal) || '').join('');
+            resultsContainer.innerHTML = cardsHtml;
 
-            let cardsHTML = '';
-            try {
-                currentFavourites = getFavourites();
-                cardsHTML = currentSearchResults.map(meal => createMealCard(meal) || '').join('');
-            } catch (error) {
-                console.error("Error generating cards HTML:", error, error.stack);
-                cardsHTML = '<p class="error-message">Error displaying results. Please try again.</p>';
-            }
+            // Apply entrance animation to newly added cards
+            resultsContainer.querySelectorAll('.meal-card').forEach((card, index) => {
+                card.style.animationDelay = `${index * 0.05}s`; // Stagger animation
+                card.classList.add('card-enter-animation');
+                // Optional: Remove animation class after it finishes
+                card.addEventListener('animationend', () => {
+                    card.classList.remove('card-enter-animation');
+                    card.style.animationDelay = ''; // Clean up style
+                }, { once: true });
+            });
 
-            try {
-                resultsContainer.innerHTML = cardsHTML;
-            } catch (error) {
-                console.error("Error setting results container innerHTML:", error, error.stack);
-                resultsContainer.innerHTML = '<p class="error-message">Error displaying results. Please try again.</p>';
-            }
-
-            externalLinksDiv.innerHTML = generateExternalLinks(terms);
-            externalSearchContainer.style.display = 'block';
-
-            populateFilterOptions();
-            filterSelect.value = 'all';
-            filterContainer.style.display = 'block';
-            filterResults();
+            filterResults(); // Apply current filter to the new page results
 
         } else {
-            resultsPageTitle.style.display = 'none';
-            if (terms && terms.length > 0) {
-                popupExternalLinksDiv.innerHTML = generateExternalLinks(terms);
-                noResultsPopup.classList.add('active');
-                noResultsPopup.style.visibility = 'visible';
-            }
+            resultsContainer.innerHTML = "<p>Error loading meal details for this page.</p>";
+            console.error("Failed to fetch details for meal IDs:", mealIdsToFetch.map(stub => stub.idMeal));
         }
+
+        hideLoading();
+        updatePaginationButtons(); // Update pagination state after loading page
     }
 
-    /** Displays the user's favourite meals. Ensures the database is de-duplicated by name first. */
-    function displayFavourites() {
-        deduplicateMealDatabase();
 
-        favouritesContainer.innerHTML = '';
-        currentFavourites = getFavourites();
-
-        if (!window.mealDatabase || !Array.isArray(window.mealDatabase)) {
-             console.error("Meal database missing or invalid when displaying favourites.");
-             noFavouritesMessage.style.display = 'block';
-             noFavouritesMessage.textContent = "Error loading meal data.";
-             return;
-        }
-
-        if (currentFavourites.length === 0) {
-            noFavouritesMessage.style.display = 'block';
-            noFavouritesMessage.textContent = "You haven't saved any favourites yet!";
-            favouritesContainer.innerHTML = '';
-        } else {
-            noFavouritesMessage.style.display = 'none';
-            const favouriteMeals = window.mealDatabase.filter(meal => meal && currentFavourites.includes(meal.id));
-
-            if (favouriteMeals.length > 0) {
-                let favCardsHTML = favouriteMeals.map(meal => createMealCard(meal) || '').join('');
-                favouritesContainer.innerHTML = favCardsHTML;
-            } else if (currentFavourites.length > 0 && favouriteMeals.length === 0){
-                favouritesContainer.innerHTML = '<p>Could not load details for saved favourites. They might have been removed or duplicates cleared.</p>';
-                noFavouritesMessage.style.display = 'block';
-                noFavouritesMessage.textContent = "Could not load details for saved favourites.";
-            } else {
-                 noFavouritesMessage.style.display = 'block';
-                 noFavouritesMessage.textContent = "You haven't saved any favourites yet!";
-                 favouritesContainer.innerHTML = '';
-            }
-        }
-    }
-
-    /**
-     * Shows the meal details overlay.
-     * Finds meal by ID in the globally de-duplicated (by name) database.
-     * @param {number|string} mealId - The ID of the meal to display.
-     */
-    function showOverlay(mealId) {
-        const numericMealId = parseInt(mealId);
-        if (isNaN(numericMealId)) {
-            console.error("Invalid mealId passed to showOverlay:", mealId);
+    function updatePaginationButtons() {
+        if (!paginationContainer || !prevButton || !nextButton || !pageInfo) {
+            paginationContainer?.classList.add('hidden-display'); // Hide if elements are missing
             return;
         }
-        const meal = window.mealDatabase.find(m => m && m.id === numericMealId);
 
-        if (meal) {
-            try {
-                overlayTitle.textContent = meal.name || 'Meal Details';
-                if (meal.ingredients && Array.isArray(meal.ingredients)) {
-                    overlayIngredients.innerHTML = meal.ingredients.map(ing => {
-                        if (!ing) return '';
-                        let text = '';
-                        if (typeof ing === 'object' && ing !== null) {
-                            if (ing.quantity) text += `${ing.quantity} `;
-                            if (ing.unit) text += `${ing.unit} `;
-                            if (ing.name) text += ing.name;
-                            if (ing.prep) text += ` (${ing.prep})`;
-                        } else if (typeof ing === 'string') {
-                           text = ing;
-                        }
-                         return text.trim() ? `<li>${text.trim()}</li>` : '';
-                    }).join('');
-                } else {
-                    overlayIngredients.innerHTML = '<li>Ingredient information not available.</li>';
-                }
-                overlayInstructions.textContent = meal.instructions || 'Instructions not available.';
-                mealOverlay.classList.add('active');
-                mealOverlay.style.visibility = 'visible';
-            } catch (error) {
-                console.error(`Error updating overlay content for meal ID ${numericMealId}:`, error, error.stack);
-                overlayTitle.textContent = "Error Loading Details";
-                overlayIngredients.innerHTML = "";
-                overlayInstructions.textContent = "Could not load meal details due to an error.";
-                mealOverlay.classList.add('active');
-                mealOverlay.style.visibility = 'visible';
-            }
+        const totalResults = allMealIdsFromSource.length;
+        const totalPages = Math.ceil(totalResults / RESULTS_PER_PAGE);
+
+        if (totalPages > 1) {
+            paginationContainer.classList.remove('hidden-display'); // Show pagination
+            prevButton.disabled = (currentDisplayPage <= 1);
+            nextButton.disabled = (currentDisplayPage >= totalPages);
+            pageInfo.textContent = `Page ${currentDisplayPage} of ${totalPages}`;
         } else {
-            console.error(`Meal with ID ${numericMealId} not found for overlay (post name de-duplication).`);
-             overlayTitle.textContent = "Meal Not Found";
-             overlayIngredients.innerHTML = "";
-             overlayInstructions.textContent = `Details for meal ID ${numericMealId} could not be found. It might have been removed as a duplicate.`;
-             mealOverlay.classList.add('active');
-             mealOverlay.style.visibility = 'visible';
+            paginationContainer.classList.add('hidden-display'); // Hide if only one page or less
         }
     }
 
-    /** Hides the meal details overlay. */
-    function hideOverlay() {
-        mealOverlay.classList.remove('active');
-        mealOverlay.style.visibility = 'hidden';
-        setTimeout(() => {
-            overlayTitle.textContent = "";
-            overlayIngredients.innerHTML = "";
-            overlayInstructions.textContent = "";
-        }, 500);
-    }
-
-    /** Hides the "no results" popup. */
-    function hidePopup() {
-        noResultsPopup.classList.remove('active');
-        noResultsPopup.style.visibility = 'hidden';
-    }
-
-    /** Displays a random meal card on the home page. Ensures database is de-duplicated by name first. */
-     function showRandomMeal() {
-        deduplicateMealDatabase();
-
-        if (!window.mealDatabase || !Array.isArray(window.mealDatabase) || window.mealDatabase.length === 0) {
-            randomMealDisplay.innerHTML = "<p>No meals available in the database.</p>";
-            return;
-        }
-        const randomIndex = Math.floor(Math.random() * window.mealDatabase.length);
-        const randomMeal = window.mealDatabase[randomIndex];
-
-        if (!randomMeal || typeof randomMeal.id === 'undefined') {
-             randomMealDisplay.innerHTML = "<p>Could not select a valid random meal.</p>";
-             return;
-        }
-        currentFavourites = getFavourites();
-        const cardHTML = createMealCard(randomMeal);
-        randomMealDisplay.innerHTML = cardHTML;
-
-        const cardElement = randomMealDisplay.querySelector('.meal-card');
-        if (cardElement) {
-            cardElement.classList.remove('card-enter-animation');
-            void cardElement.offsetWidth;
-            requestAnimationFrame(() => {
-                 cardElement.classList.add('card-enter-animation');
-                 const handleAnimationEnd = (event) => {
-                     if (event.animationName === 'card-enter-glow' && cardElement) {
-                          cardElement.classList.remove('card-enter-animation');
-                          cardElement.removeEventListener('animationend', handleAnimationEnd);
-                     }
-                 };
-                 cardElement.addEventListener('animationend', handleAnimationEnd);
-             });
+    function handleNextPage() {
+        const totalPages = Math.ceil(allMealIdsFromSource.length / RESULTS_PER_PAGE);
+        if (currentDisplayPage < totalPages) {
+            currentDisplayPage++;
+            displayPaginatedResults();
+            window.scrollTo(0, 0); // Scroll to top
         }
     }
 
-    /**
-     * Retrieves favourite meal IDs from localStorage.
-     * @returns {number[]} An array of favourite meal IDs.
-     */
+    function handlePrevPage() {
+        if (currentDisplayPage > 1) {
+            currentDisplayPage--;
+            displayPaginatedResults();
+            window.scrollTo(0, 0); // Scroll to top
+        }
+    }
+
+    // --- Favourites Functions ---
     function getFavourites() {
         try {
-            const favs = localStorage.getItem('mealFinderFavourites');
-            const parsedFavs = favs ? JSON.parse(favs) : [];
-            return Array.isArray(parsedFavs) ? parsedFavs.map(id => parseInt(id)).filter(id => !isNaN(id)) : [];
+            const favouritesJson = localStorage.getItem('mealFinderFavourites');
+            const parsedFavourites = favouritesJson ? JSON.parse(favouritesJson) : [];
+            // Ensure it's an array of valid numbers
+            return Array.isArray(parsedFavourites) ? parsedFavourites.map(id => parseInt(id)).filter(id => !isNaN(id)) : [];
         } catch (e) {
-            console.error("Error reading favourites from localStorage", e, e.stack);
-            return [];
+            console.error("Error reading favourites from localStorage:", e);
+            return []; // Return empty array on error
         }
     }
 
-    /**
-     * Saves an array of favourite meal IDs to localStorage.
-     * @param {number[]} favsArray - The array of favourite meal IDs to save.
-     */
-    function saveFavourites(favsArray) {
+    function saveFavourites(favouritesArray) {
         try {
-            const uniqueFavs = [...new Set(favsArray)].map(id => parseInt(id)).filter(id => !isNaN(id));
-            localStorage.setItem('mealFinderFavourites', JSON.stringify(uniqueFavs));
-            currentFavourites = uniqueFavs;
+            // Ensure unique, valid numbers before saving
+            const uniqueValidFavourites = [...new Set(favouritesArray)]
+                .map(id => parseInt(id))
+                .filter(id => !isNaN(id));
+            localStorage.setItem('mealFinderFavourites', JSON.stringify(uniqueValidFavourites));
+            currentFavourites = uniqueValidFavourites; // Update in-memory state
+            // console.log("DEBUG: Favourites saved:", uniqueValidFavourites);
         } catch (e) {
-            console.error("Error saving favourites to localStorage:", e, e.stack);
-            alert("Could not save favourites. Your browser storage might be full or disabled.");
+            console.error("Error saving favourites to localStorage:", e);
+            alert("Could not save favourites state."); // Inform user
         }
     }
 
-    /**
-     * Toggles the favourite status of a meal. Uses meal ID.
-     * Calls displayFavourites if on favourites page.
-     * @param {number|string} mealId - The ID of the meal to toggle.
-     * @param {HTMLElement} [btn] - The specific button element that was clicked (optional).
-     */
-    function toggleFavourite(mealId, btn) {
-        const numericMealId = parseInt(mealId);
-        if (isNaN(numericMealId)) {
-            console.error("Invalid mealId passed to toggleFavourite:", mealId);
+    function toggleFavourite(mealId, buttonElement) {
+        const id = parseInt(mealId);
+        if (isNaN(id)) {
+            console.error("Invalid meal ID passed to toggleFavourite:", mealId);
             return;
         }
 
-        let currentFavsFromStorage = getFavourites();
-        let updatedFavs;
-        let isActive;
-        let isRemoving = currentFavsFromStorage.includes(numericMealId);
+        let currentFavs = getFavourites();
+        const isCurrentlyFavourite = currentFavs.includes(id);
+        let isNowActive;
 
-        if (isRemoving) {
-            updatedFavs = currentFavsFromStorage.filter(id => id !== numericMealId);
-            isActive = false;
+        if (isCurrentlyFavourite) {
+            // Remove from favourites
+            currentFavs = currentFavs.filter(favId => favId !== id);
+            isNowActive = false;
         } else {
-            updatedFavs = [...currentFavsFromStorage, numericMealId];
-            isActive = true;
+            // Add to favourites
+            currentFavs.push(id);
+            isNowActive = true;
         }
 
-        saveFavourites(updatedFavs);
+        saveFavourites(currentFavs); // Save the updated array
 
-        // Update UI for all matching buttons
-        const allFavButtonsForMeal = document.querySelectorAll(`.favourite-button[data-meal-id="${numericMealId}"]`);
-        allFavButtonsForMeal.forEach(buttonElement => {
-             buttonElement.classList.toggle('active', isActive);
-             const newTitle = isActive ? 'Remove from Favourites' : 'Add to Favourites';
-             buttonElement.title = newTitle;
-             buttonElement.setAttribute('aria-label', newTitle);
+        // Update all buttons matching this meal ID on the current page
+        const allMatchingButtons = document.querySelectorAll(`.favourite-button[data-meal-id="${id}"]`);
+        allMatchingButtons.forEach(btn => {
+            btn.classList.toggle('active', isNowActive);
+            const newTitle = isNowActive ? 'Remove from Favourites' : 'Add to Favourites';
+            btn.title = newTitle;
+            btn.setAttribute('aria-label', newTitle);
+
+            // Trigger animation only when adding
+            if (isNowActive && !isCurrentlyFavourite) {
+                 // Force reflow/restart animation
+                 btn.style.animation = 'none';
+                 requestAnimationFrame(() => {
+                     requestAnimationFrame(() => { // Nested RAF might help ensure style is applied
+                          btn.style.animation = '';
+                     });
+                 });
+            }
         });
 
-        // If currently on the favourites page, refresh the displayed list
+        // If on the favourites page, refresh the list immediately
         if (currentPageId === 'favourites-page') {
-             displayFavourites();
+            displayFavourites();
         }
     }
 
-    // --- Event Listeners ---
+    async function displayFavourites() {
+        if (!favouritesContainer || !noFavouritesMessage) { console.error("ERROR: Favourites page elements missing."); return; }
 
-    homeSearchButton.addEventListener('click', () => {
-        navigateTo('search-page');
-        if (searchPageInput) searchPageInput.value = '';
-        if (excludeInput) excludeInput.value = '';
-    });
+        showLoading();
+        favouritesContainer.innerHTML = ''; // Clear previous content
+        noFavouritesMessage.classList.add('hidden-display'); // Hide 'no favourites' message initially
+
+        currentFavourites = getFavourites(); // Get the latest list
+
+        if (currentFavourites.length === 0) {
+            noFavouritesMessage.classList.remove('hidden-display'); // Show message
+            hideLoading();
+            return;
+        }
+
+        // Fetch details for all favourite meals
+        const favouriteMealPromises = currentFavourites.map(id => fetchMealById(id, true)); // Use silent fetch
+        const results = await Promise.allSettled(favouriteMealPromises);
+
+        const favouriteMealData = results
+            .filter(result => result.status === 'fulfilled' && result.value)
+            .map(result => result.value);
+
+        if (favouriteMealData.length > 0) {
+            const cardsHtml = favouriteMealData.map(meal => createMealCard(meal) || '').join('');
+            favouritesContainer.innerHTML = cardsHtml;
+
+            // Apply entrance animation
+            favouritesContainer.querySelectorAll('.meal-card').forEach((card, index) => {
+                card.style.animationDelay = `${index * 0.05}s`;
+                card.classList.add('card-enter-animation');
+                 card.addEventListener('animationend', () => {
+                     card.classList.remove('card-enter-animation');
+                     card.style.animationDelay = '';
+                 }, { once: true });
+            });
+        } else {
+            console.warn("WARN: No favourite meals displayed after fetch attempt.");
+            noFavouritesMessage.textContent = "Could not load details for saved favourites.";
+            noFavouritesMessage.classList.remove('hidden-display');
+            if (currentFavourites.length > 0 && favouriteMealData.length === 0) {
+                console.error("Error: Favourite IDs exist but failed to fetch details:", currentFavourites);
+            }
+        }
+        hideLoading();
+    }
 
     function handleViewFavouritesClick() {
-        displayFavourites(); // Runs de-duplication by name
-        const favCards = favouritesContainer.querySelectorAll('.meal-card');
-        if (currentFavourites.length > 0 && favCards.length > 0) {
-             navigateTo('favourites-page');
-        } else if (currentFavourites.length === 0) {
-             alert("You haven't saved any favourites yet!");
-        } else {
-             navigateTo('favourites-page');
+        navigateTo('favourites-page');
+        // displayFavourites() is now called within navigateTo if targetPageId === 'favourites-page'
+    }
+
+
+    // --- Overlay ---
+    async function showOverlay(mealId) {
+         if (!mealOverlay || !overlayTitle || !overlayIngredients || !overlayInstructions || !overlayImage || !overlayDescription) {
+             console.error("ERROR: Meal overlay elements missing.");
+             return;
+         }
+
+         showLoading();
+         const meal = await fetchMealById(mealId, true); // Use silent fetch
+         hideLoading();
+
+         if (meal) {
+             overlayTitle.textContent = meal.name || 'Meal Details';
+
+             // Image display
+             if (meal.imageUrl && overlayImage) {
+                 const fullImageUrl = meal.imageUrl.replace(/\/preview$/, '');
+                 overlayImage.src = fullImageUrl || meal.imageUrl; // Use preview as fallback
+                 overlayImage.alt = meal.name; // Important for accessibility
+                 overlayImage.classList.remove('hidden-display');
+             } else if (overlayImage) {
+                 overlayImage.classList.add('hidden-display'); // Hide if no image
+             }
+
+             // Description display
+             if (meal.shortDescription && overlayDescription) {
+                 overlayDescription.textContent = meal.shortDescription;
+                 overlayDescription.classList.remove('hidden-display');
+             } else if (overlayDescription) {
+                 overlayDescription.classList.add('hidden-display'); // Hide if no description
+             }
+
+             // Ingredients display with highlighting
+             overlayIngredients.innerHTML = ''; // Clear previous ingredients
+             if (meal.ingredients && meal.ingredients.length > 0) {
+                 meal.ingredients.forEach(ingredientString => {
+                     const li = document.createElement('li');
+                     li.textContent = ingredientString;
+                     // Highlight if ingredient matches current search terms
+                     const isHighlighted = currentSearchTerms.some(term =>
+                         cleanInputString(ingredientString).includes(cleanInputString(term))
+                     );
+                     if (isHighlighted) {
+                         li.classList.add('highlighted');
+                     }
+                     overlayIngredients.appendChild(li);
+                 });
+             } else {
+                 overlayIngredients.innerHTML = '<li>Ingredients not available.</li>';
+             }
+
+             // Instructions display
+             overlayInstructions.textContent = meal.instructions || 'Instructions not available.';
+
+             // Show the overlay
+             mealOverlay.classList.remove('hidden-visually');
+             mealOverlay.classList.add('active');
+             overlayCloseButton?.focus(); // Set focus to close button for accessibility
+
+         } else {
+             alert("Sorry, could not load the details for this meal."); // User feedback
+             console.error(`Failed to fetch or adapt meal data for ID: ${mealId}`);
+         }
+    }
+
+    function hideOverlay() {
+        if (mealOverlay) {
+            mealOverlay.classList.remove('active');
+             // Wait for transition to finish before setting visibility: hidden
+             mealOverlay.addEventListener('transitionend', () => {
+                 if (!mealOverlay.classList.contains('active')) { // Check state again
+                     mealOverlay.classList.add('hidden-visually');
+                 }
+             }, { once: true });
+             // Fallback
+             setTimeout(() => {
+                 if (!mealOverlay.classList.contains('active')) {
+                     mealOverlay.classList.add('hidden-visually');
+                 }
+             }, 600);
         }
     }
-    viewFavouritesHomeButton.addEventListener('click', handleViewFavouritesClick);
-    viewFavouritesSearchButton.addEventListener('click', handleViewFavouritesClick);
 
-    backButton.addEventListener('click', goBack);
-
-    searchPageButton.addEventListener('click', () => {
-        showLoading();
-        setTimeout(() => {
-            let results = [];
-            let terms = [];
-            let showPopup = false;
-            try {
-                terms = parseSearchInput(searchPageInput.value);
-                currentSearchTerms = terms;
-                const excludedTerms = parseSearchInput(excludeInput.value);
-
-                if (terms.length === 0 && excludedTerms.length === 0) {
-                     alert("Please enter some ingredients to search for or exclude.");
-                     hideLoading();
-                     return;
-                 }
-                const matchAny = document.querySelector('input[name="match-type"]:checked')?.value === 'any';
-                results = performSearch(terms, matchAny);
-                showPopup = (results.length === 0 && (terms.length > 0 || excludedTerms.length > 0));
-                displayResults(results, terms);
-                if (results.length > 0 || showPopup) {
-                    navigateTo('results-page');
+    function hidePopup() {
+        if (noResultsPopup) {
+            noResultsPopup.classList.remove('active');
+            noResultsPopup.addEventListener('transitionend', () => {
+                if (!noResultsPopup.classList.contains('active')) {
+                    noResultsPopup.classList.add('hidden-visually');
                 }
-            } catch (error) {
-                console.error("Error during search button click handler:", error, error.stack);
-                alert("An error occurred during the search. Please check the console for details.");
-                resultsContainer.innerHTML = '<p class="error-message">Search failed due to an error. Please try again.</p>';
-                navigateTo('results-page');
-            } finally {
-                hideLoading();
-            }
-        }, 50);
-    });
-
-    searchPageInput.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') { e.preventDefault(); searchPageButton.click(); }
-    });
-    excludeInput.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') { e.preventDefault(); searchPageButton.click(); }
-    });
-
-    randomMealButton.addEventListener('click', showRandomMeal);
-
-    filterSelect.addEventListener('change', filterResults);
-
-    appContainer.addEventListener('click', (event) => {
-        const favButton = event.target.closest('.favourite-button');
-        if (favButton) {
-            const mealId = favButton.dataset.mealId;
-            if (mealId) { toggleFavourite(mealId, favButton); }
-            return;
-         }
-        const clickedCard = event.target.closest('.meal-card');
-        if (clickedCard && !event.target.closest('.google-image-link') && !event.target.closest('.favourite-button')) {
-             if (resultsContainer.contains(clickedCard) ||
-                 randomMealDisplay.contains(clickedCard) ||
-                 favouritesContainer.contains(clickedCard))
-             {
-                const mealId = clickedCard.dataset.mealId;
-                if (mealId) { showOverlay(mealId); }
-            }
+            }, { once: true });
+            // Fallback
+             setTimeout(() => {
+                 if (!noResultsPopup.classList.contains('active')) {
+                     noResultsPopup.classList.add('hidden-visually');
+                 }
+             }, 600);
         }
-        if (event.target === mealOverlay) { hideOverlay(); }
-        if (event.target === noResultsPopup) { hidePopup(); }
-    });
+    }
 
-    overlayCloseButton.addEventListener('click', hideOverlay);
-    popupCloseButton.addEventListener('click', hidePopup);
+    // --- Recipe Book Functions ---
+    async function fetchAndDisplayCategories() {
+        if (!categoryContainer) { console.error("ERROR: Category container missing."); return; }
+
+        showLoading();
+        categoryContainer.innerHTML = '<p>Loading categories...</p>'; // Initial loading message
+
+        const data = await fetchFromApi(API_LIST_CATEGORIES_URL, true); // Silent fetch
+
+        if (data?.meals?.length > 0) {
+            // Filter fetched categories against the desired list and sort
+            availableCategories = data.meals
+                .map(cat => cat.strCategory)
+                .filter(catName => desiredCategories.includes(catName))
+                .sort();
+
+            if (availableCategories.length > 0) {
+                categoryContainer.innerHTML = ''; // Clear loading message
+                availableCategories.forEach((categoryName, index) => {
+                    const card = document.createElement('article');
+                    card.className = 'category-card category-card-enter'; // Add entrance animation class
+                    card.dataset.categoryName = categoryName;
+                    card.tabIndex = 0;
+                    card.setAttribute('role', 'button');
+                    card.setAttribute('aria-label', `View ${categoryName} recipes`);
+                    card.innerHTML = `<h3>${categoryName}</h3>`;
+
+                    // Apply staggered animation delay
+                    card.style.transitionDelay = `${index * 0.07}s`;
+
+                    categoryContainer.appendChild(card);
+
+                    // Trigger the animation by adding the active class after a frame
+                     requestAnimationFrame(() => {
+                         card.classList.add('category-card-enter-active');
+                     });
+                });
+            } else {
+                categoryContainer.innerHTML = '<p>No recipe categories found matching the desired list.</p>';
+            }
+        } else {
+            categoryContainer.innerHTML = '<p>Error loading recipe categories from the API.</p>';
+            console.error("Failed to fetch or parse categories:", data);
+        }
+        hideLoading();
+    }
+
+     async function handleCategoryClick(categoryName) {
+        if (!categoryName) return;
+        showLoading();
+        currentSearchTerms = []; // Reset search terms when Browse category
+        try {
+            const mealStubs = await fetchMealIdsByCategory(categoryName);
+            // Display results (even if empty) and navigate
+            displayResults(mealStubs, `${categoryName} Recipes`, false); // isSearch = false
+            navigateTo('results-page');
+        } catch (e) {
+            console.error(`Error fetching recipes for category ${categoryName}:`, e);
+            hideLoading();
+            alert(`Sorry, could not load recipes for the ${categoryName} category.`);
+            // Optionally navigate to an error state or back
+        }
+     }
+
+    // --- Random Meal Function ---
+    async function executeShowRandomMeal() {
+        if (!randomMealDisplay) { console.error("ERROR: #random-meal-display element missing!"); return; }
+        randomMealDisplay.innerHTML = ''; // Clear previous random meal
+        showLoading();
+
+        let rawApiData = null;
+        let adaptedMealData = null;
+
+        try {
+            rawApiData = await fetchRandomMeal();
+            if (!rawApiData) throw new Error("No meal data returned from random API call.");
+        } catch (fetchError) {
+            console.error("ERROR fetching random meal data:", fetchError);
+            hideLoading();
+            randomMealDisplay.innerHTML = "<p>Oops! Couldn't fetch a random meal right now.</p>";
+            return;
+        }
+
+        try {
+            adaptedMealData = adaptApiMealData(rawApiData);
+            if (!adaptedMealData) throw new Error("Failed to adapt the fetched random meal data.");
+        } catch (adaptError) {
+            console.error("ERROR adapting random meal data:", adaptError);
+            hideLoading();
+            randomMealDisplay.innerHTML = "<p>Error processing the random meal data.</p>";
+            return;
+        }
+
+        // Check if adaptation was successful and we have an ID
+        if (adaptedMealData?.id) {
+            hideLoading();
+            currentFavourites = getFavourites(); // Ensure favourites are up-to-date
+            let cardHTML = '';
+            try {
+                cardHTML = createMealCard(adaptedMealData);
+                if (cardHTML.includes('error-message')) { // Check if createMealCard returned an error string
+                    throw new Error("createMealCard returned an error message string.");
+                }
+            } catch(cardCreateError) {
+                console.error("ERROR calling createMealCard from executeShowRandomMeal:", cardCreateError);
+                cardHTML = `<p>Error displaying the random meal details.</p>`;
+            }
+
+            // Render the card (even if it's an error message)
+            try {
+                randomMealDisplay.innerHTML = cardHTML;
+            } catch (renderError){
+                console.error("ERROR assigning random meal HTML to display area:", renderError);
+                randomMealDisplay.innerHTML = "<p>Error rendering the meal card.</p>"; // Final fallback render error
+            }
+
+            // Apply animation if rendering was successful (not an error paragraph)
+            if (!cardHTML.startsWith('<p class="error-message"')) {
+                const cardElement = randomMealDisplay.querySelector('.meal-card');
+                if (cardElement) {
+                    cardElement.style.animationDelay = '0s'; // Start immediately
+                    cardElement.classList.add('card-enter-animation');
+                    // Clean up animation class after completion
+                    cardElement.addEventListener('animationend', () => {
+                         cardElement.classList.remove('card-enter-animation');
+                         cardElement.style.animationDelay = '';
+                    }, { once: true });
+                } else {
+                    console.warn("WARN in executeShowRandomMeal: .meal-card element not found after rendering.");
+                }
+            }
+        } else {
+            // Handle case where adaptation failed silently or meal had no ID
+            hideLoading();
+            randomMealDisplay.innerHTML = "<p>Could not get valid random meal data.</p>";
+            console.error("ERROR: Invalid adapted meal data after successful fetch.", adaptedMealData);
+        }
+    }
+
+
+    // --- Event Listeners Setup ---
+    function addEventListeners() {
+        // Navigation Buttons
+        homeSearchButton?.addEventListener('click', () => {
+            navigateTo('search-page');
+            if (searchPageInput) searchPageInput.value = '';
+            if (excludeInput) excludeInput.value = '';
+            searchPageInput?.focus(); // Focus input on navigating to search
+        });
+        viewFavouritesHomeButton?.addEventListener('click', handleViewFavouritesClick);
+        viewFavouritesSearchButton?.addEventListener('click', handleViewFavouritesClick);
+        backButton?.addEventListener('click', goBack);
+        goToRecipeBookButton?.addEventListener('click', () => navigateTo('recipe-book-page'));
+
+        // Search Functionality
+        searchPageButton?.addEventListener('click', async () => {
+            if (!searchPageInput) { console.warn("WARN: Search input missing."); return; }
+            const searchTerms = parseSearchInput(searchPageInput.value);
+            currentSearchTerms = searchTerms; // Store for highlighting etc.
+
+            if (searchTerms.length === 0) {
+                alert("Please enter at least one ingredient to search for.");
+                return;
+            }
+
+            // --- SEARCH LOGIC LIMITATION ---
+            // The TheMealDB API endpoint filter.php?i= only supports searching by ONE ingredient.
+            // This implementation currently uses only the FIRST term entered.
+            // The "Match All/Any" and "Exclude Ingredients" options are NOT functional
+            // with this basic API endpoint and would require multiple API calls + client-side filtering.
+            const primaryIngredient = searchTerms[0];
+            // --- END OF LIMITATION NOTE ---
+
+            showLoading();
+            try {
+                const mealStubs = await fetchMealIdsByIngredient(primaryIngredient);
+                displayResults(mealStubs, `Results for: "${searchTerms.join(', ')}"`, true); // isSearch = true
+                navigateTo('results-page');
+            } catch (e) {
+                console.error("Search API call error:", e);
+                hideLoading();
+                alert(`Search failed: ${e.message}. Please try again later.`);
+                // Optionally navigate to results page with an error message
+                if(resultsContainer) resultsContainer.innerHTML = '<p>The search request failed.</p>';
+                navigateTo('results-page');
+            }
+        });
+
+        // Allow Enter key submission for search
+        searchPageInput?.addEventListener('keypress', (e) => {
+             if (e.key === 'Enter') { e.preventDefault(); searchPageButton?.click(); }
+        });
+        excludeInput?.addEventListener('keypress', (e) => {
+             if (e.key === 'Enter') { e.preventDefault(); searchPageButton?.click(); }
+        });
+
+
+        // Random Meal Button
+        randomMealButton?.addEventListener('click', executeShowRandomMeal);
+
+        // Filter Dropdown
+        filterSelect?.addEventListener('change', filterResults);
+
+        // Pagination Buttons
+        nextButton?.addEventListener('click', handleNextPage);
+        prevButton?.addEventListener('click', handlePrevPage);
+
+        // Category Card Clicks (Event Delegation)
+        categoryContainer?.addEventListener('click', (event) => {
+            const categoryCard = event.target.closest('.category-card');
+            if (categoryCard && categoryCard.dataset.categoryName) {
+                handleCategoryClick(categoryCard.dataset.categoryName);
+            }
+        });
+        // Allow Enter key activation for category cards
+        categoryContainer?.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter' || event.key === ' ') { // Add spacebar activation
+                 const categoryCard = event.target.closest('.category-card');
+                 if (categoryCard && categoryCard.dataset.categoryName) {
+                      event.preventDefault(); // Prevent scrolling on spacebar
+                      handleCategoryClick(categoryCard.dataset.categoryName);
+                 }
+             }
+         });
+
+        // Global Click Handler (Event Delegation on App Container)
+        appContainer?.addEventListener('click', async (event) => {
+            // Favourite Button Click
+            const favouriteButton = event.target.closest('.favourite-button');
+            if (favouriteButton) {
+                event.stopPropagation(); // Prevent card click from firing
+                const mealId = favouriteButton.dataset.mealId;
+                if (mealId) {
+                    toggleFavourite(mealId, favouriteButton); // Pass button for context if needed
+                }
+                return; // Handled favourite click
+            }
+
+            // Meal Card Click (excluding links and favourite button)
+            const mealCard = event.target.closest('.meal-card');
+            if (mealCard && !event.target.closest('a') && !event.target.closest('.favourite-button')) {
+                // Check if the card is within a container where clicks should open the overlay
+                 const isInResults = resultsContainer?.contains(mealCard);
+                 const isInRandom = randomMealDisplay?.contains(mealCard);
+                 const isInFavourites = favouritesContainer?.contains(mealCard);
+
+                 if (isInResults || isInRandom || isInFavourites) {
+                      const mealId = mealCard.dataset.mealId;
+                      if (mealId) {
+                           await showOverlay(mealId);
+                      }
+                 }
+                 return; // Handled card click
+             }
+
+             // Overlay Background Click (to close)
+             if (event.target === mealOverlay) {
+                 hideOverlay();
+                 return;
+             }
+
+             // Popup Background Click (to close)
+             if (event.target === noResultsPopup) {
+                 hidePopup();
+                 return;
+             }
+        });
+
+        // Explicit Close Buttons
+        overlayCloseButton?.addEventListener('click', hideOverlay);
+        popupCloseButton?.addEventListener('click', hidePopup);
+
+        // --- PWA Install Prompt Listener ---
+        window.addEventListener('beforeinstallprompt', (e) => {
+            console.log('beforeinstallprompt event fired');
+            // Prevent Chrome 67 and earlier from automatically showing the prompt
+            e.preventDefault();
+            // Stash the event so it can be triggered later.
+            deferredInstallPrompt = e;
+            // Update UI notify the user they can install the PWA
+            if (installPwaButton) {
+                installPwaButton.classList.remove('hidden-display');
+                console.log('Install button shown.');
+            } else {
+                console.log('Install button not found, cannot show prompt UI.');
+            }
+        });
+
+        installPwaButton?.addEventListener('click', async () => {
+            if (!deferredInstallPrompt) {
+                console.log('Install prompt event not available.');
+                return;
+            }
+            // Hide the app provided install promotion
+            installPwaButton.classList.add('hidden-display');
+            // Show the install prompt
+            deferredInstallPrompt.prompt();
+            // Wait for the user to respond to the prompt
+            const { outcome } = await deferredInstallPrompt.userChoice;
+            console.log(`User response to the install prompt: ${outcome}`);
+            // We've used the prompt, and can't use it again, throw it away
+            deferredInstallPrompt = null;
+        });
+
+        window.addEventListener('appinstalled', () => {
+             console.log('PWA was installed');
+             // Hide the install button permanently or update UI
+             installPwaButton?.classList.add('hidden-display');
+             deferredInstallPrompt = null; // Clear the prompt event
+        });
+
+
+        console.log("All event listeners added.");
+    }
 
     // --- Initialisation ---
     function initializeApp() {
-        console.log("Initializing Meal Finder App V3.19...");
-        populateFilterOptions();
-        currentFavourites = getFavourites();
-        navigateTo('home-page');
-        // showRandomMeal(); // Optional
-        console.log("Meal Finder Initialized.");
+        console.log("Initializing Meal Finder App...");
+        // Check core elements again before proceeding
+        if (!appContainer || !homePage || !resultsPage || !categoryContainer || !resultsContainer || !favouritesContainer || !loadingIndicator) {
+             console.error("CRITICAL ERROR: Core elements check failed during initialization.");
+             if(appContainer) appContainer.innerHTML = '<h1>App Initialization Failed</h1><p>Critical elements missing. Check console.</p>';
+             return;
+        }
+
+        try {
+            currentFavourites = getFavourites(); // Load favourites on startup
+        } catch(e) {
+            console.error("ERROR loading initial favourites:", e);
+            currentFavourites = [];
+        }
+
+        // Initial UI setup
+        if (filterSelect) { populateFilterOptions(); } else { console.warn("WARN: Filter select missing, cannot populate initially."); }
+        navigateTo('home-page'); // Start on the home page
+        addEventListeners(); // Add all event listeners
+
+        // --- Register Service Worker ---
+        // Added this block at the end of initialization
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => { // Register after page load
+                navigator.serviceWorker.register('/service-worker.js')
+                    .then(registration => {
+                        console.log('ServiceWorker registration successful with scope: ', registration.scope);
+                    })
+                    .catch(error => {
+                        console.error('ServiceWorker registration failed: ', error);
+                    });
+            });
+        } else {
+            console.log('Service workers are not supported by this browser.');
+        }
+        // --- End Service Worker Registration ---
+
+
+        console.log("Meal Finder Initialized Successfully.");
     }
 
-    // --- Database Loading Check ---
-    if (typeof window.mealDatabase !== 'undefined' && Array.isArray(window.mealDatabase)) {
-         initializeApp();
-    } else {
-         console.error("Meal Database (window.mealDatabase) is not defined as an array. Ensure meal data scripts load and initialize it.");
-         document.body.innerHTML = '<p style="color: red; padding: 20px; font-family: sans-serif; background: #333; border-radius: 5px;">Error: Could not initialize meal data structure. The application cannot start. Check console (F12).</p>';
-    }
+    initializeApp(); // Start the App!
 
 }); // End DOMContentLoaded
